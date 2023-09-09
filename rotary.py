@@ -38,7 +38,7 @@ class RotaryEncoder:
 
         self.__last_status = new_status  # Store last status into new status.
 
-    def __switch_detect(self, pin) -> None:
+    def __switch_detect(self, pin) -> None:  # The handler for RotaryEncoder builtin SW.
         if self.__last_switch_status == self.__SW_PIN.value():
             return
         self.__last_switch_status = self.__SW_PIN.value()

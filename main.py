@@ -6,7 +6,7 @@ from RotaryEncoder import RotaryEncoder
 val: int = 0
 
 
-def rotary_change(event_type) -> None:
+def rotary_change(event_type) -> None:  # Handler for RotaryEncoder.
     global val
     if event_type == RotaryEncoder.ROT_CW:
         val += 1
