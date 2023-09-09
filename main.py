@@ -1,3 +1,4 @@
+import utime
 from machine import Pin
 
 from RotaryEncoder import RotaryEncoder
@@ -33,7 +34,7 @@ def main():
 
     # Your main code logic here (e.g., running other tasks or loops)
     while True:
-        pass
+        utime.sleep(0.1)
 
 
 if __name__ == "__main__":
