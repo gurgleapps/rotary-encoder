@@ -12,13 +12,7 @@ class RotaryEncoder:
     SW_RELEASED: int = micropython.const(0x08)
 
     def __init__(self, dt_pin: Pin = None, clk_pin: Pin = None, sw_pin: Pin = None) -> None:
-        """
-        Initialize the RotaryEncoder instance.
 
-        :param dt_pin: Pin connected to DT (data) of the rotary encoder.
-        :param clk_pin: Pin connected to CLK (clock) of the rotary encoder.
-        :param sw_pin: Pin connected to SW (switch) of the rotary encoder.
-        """
         if dt_pin is None or clk_pin is None or sw_pin is None:
             raise ValueError("All pins (dt_pin, clk_pin, sw_pin) must be provided.")
 
@@ -41,9 +35,6 @@ class RotaryEncoder:
         self.__handlers: list = []
 
     def __rotary_change(self, pin) -> None:
-        """
-        Handle rotary encoder change event.
-        """
         new_status: int = (self.__DT_PIN.value() << 1) | self.__CLK_PIN.value()
         if new_status == self.__last_status:
             return
@@ -56,9 +47,6 @@ class RotaryEncoder:
         self.__last_status = new_status  # Store last status into new status.
 
     def __switch_detect(self, pin) -> None:
-        """
-        Handle rotary encoder switch event.
-        """
         if self.__last_switch_status == self.__SW_PIN.value():
             return
         self.__last_switch_status = self.__SW_PIN.value()
@@ -68,18 +56,8 @@ class RotaryEncoder:
             micropython.schedule(self.__call_handlers, RotaryEncoder.SW_PRESS)
 
     def add_handler(self, handler) -> None:
-        """
-        Add an event handler to the RotaryEncoder.
-
-        :param handler: A function that will be called when events occur.
-        """
         self.__handlers.append(handler)
 
     def __call_handlers(self, event_type) -> None:
-        """
-        Call registered event handlers for the given event type.
-
-        :param event_type: The type of event to be handled.
-        """
         for handler in self.__handlers:
             handler(event_type)
