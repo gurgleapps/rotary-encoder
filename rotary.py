@@ -16,13 +16,9 @@ class RotaryEncoder:
         if dt_pin is None or clk_pin is None or sw_pin is None:
             raise ValueError("All pins (dt_pin, clk_pin, sw_pin) must be provided.")
 
-        # Configure pins as inputs with pull-ups.
         self.__DT_PIN: Pin = dt_pin  # RotaryEncoder DT.
         self.__CLK_PIN: Pin = clk_pin  # RotaryEncoder CLK.
         self.__SW_PIN: Pin = sw_pin  # RotaryEncoder SW.
-        self.__DT_PIN.init(mode=Pin.IN, pull=Pin.PULL_UP)
-        self.__CLK_PIN.init(mode=Pin.IN, pull=Pin.PULL_UP)
-        self.__SW_PIN.init(mode=Pin.IN, pull=Pin.PULL_UP)
 
         # IRQ for RotaryEncoder.
         self.__DT_PIN.irq(handler=self.__rotary_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING)
