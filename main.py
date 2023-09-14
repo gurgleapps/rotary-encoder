@@ -1,7 +1,7 @@
 import utime
 from machine import Pin
 
-from RotaryEncoder import RotaryEncoder
+from rotary import RotaryEncoder
 
 val: int = 0
 
