@@ -1,54 +1,59 @@
-import machine
-import utime as time
-from machine import Pin
 import micropython
+from machine import Pin
 
-class Rotary:
-    
-    ROT_CW = 1
-    ROT_CCW = 2
-    SW_PRESS = 4
-    SW_RELEASE = 8
-    
-    def __init__(self,dt,clk,sw):
-        self.dt_pin = Pin(dt, Pin.IN)
-        self.clk_pin = Pin(clk, Pin.IN)
-        self.sw_pin = Pin(sw, Pin.IN)
-        self.last_status = (self.dt_pin.value() << 1) | self.clk_pin.value()
-        self.dt_pin.irq(handler=self.rotary_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING )
-        self.clk_pin.irq(handler=self.rotary_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING )
-        self.sw_pin.irq(handler=self.switch_detect, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING )
-        self.handlers = []
-        self.last_button_status = self.sw_pin.value()
-        
-    def rotary_change(self, pin):
-        new_status = (self.dt_pin.value() << 1) | self.clk_pin.value()
-        if new_status == self.last_status:
+micropython.alloc_emergency_exception_buf(100)
+
+
+class RotaryEncoder:
+    # Event constants
+    ROT_CW: int = micropython.const(0x01)
+    ROT_CCW: int = micropython.const(0x02)
+    SW_PRESS: int = micropython.const(0x04)
+    SW_RELEASED: int = micropython.const(0x08)
+
+    def __init__(self, dt_pin: Pin = None, clk_pin: Pin = None, sw_pin: Pin = None) -> None:
+
+        if dt_pin is None or clk_pin is None or sw_pin is None:
+            raise ValueError("All pins (dt_pin, clk_pin, sw_pin) must be provided.")
+
+        self.__DT_PIN: Pin = dt_pin  # RotaryEncoder DT.
+        self.__CLK_PIN: Pin = clk_pin  # RotaryEncoder CLK.
+        self.__SW_PIN: Pin = sw_pin  # RotaryEncoder SW.
+
+        # IRQ for RotaryEncoder.
+        self.__DT_PIN.irq(handler=self.__rotary_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING)
+        self.__CLK_PIN.irq(handler=self.__rotary_change, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING)
+        self.__SW_PIN.irq(handler=self.__switch_detect, trigger=Pin.IRQ_FALLING | Pin.IRQ_RISING)
+
+        # Initialize state variables.
+        self.__last_status: int = (self.__DT_PIN.value() << 1) | self.__CLK_PIN.value()
+        self.__last_switch_status: int = self.__SW_PIN.value()
+        self.__handlers: list = []
+
+    def __rotary_change(self, pin) -> None:
+        new_status: int = (self.__DT_PIN.value() << 1) | self.__CLK_PIN.value()
+        if new_status == self.__last_status:
             return
-        transition = (self.last_status << 2) | new_status
-        if transition == 0b1110:
-            micropython.schedule(self.call_handlers, Rotary.ROT_CW)
-        elif transition == 0b1101:
-            micropython.schedule(self.call_handlers, Rotary.ROT_CCW)
-        self.last_status = new_status
-        
-    def switch_detect(self,pin):
-        if self.last_button_status == self.sw_pin.value():
+        transition: int = (self.__last_status << 2) | new_status
+        if transition == 0x0E:  # In binary: 0b1110
+            micropython.schedule(self.__call_handlers, RotaryEncoder.ROT_CW)
+        elif transition == 0x0D:  # In binary: 0b1101
+            micropython.schedule(self.__call_handlers, RotaryEncoder.ROT_CCW)
+
+        self.__last_status = new_status  # Store last status into new status.
+
+    def __switch_detect(self, pin) -> None:
+        if self.__last_switch_status == self.__SW_PIN.value():
             return
-        self.last_button_status = self.sw_pin.value()
-        if self.sw_pin.value():
-            micropython.schedule(self.call_handlers, Rotary.SW_RELEASE)
+        self.__last_switch_status = self.__SW_PIN.value()
+        if self.__SW_PIN.value():
+            micropython.schedule(self.__call_handlers, RotaryEncoder.SW_RELEASED)
         else:
-            micropython.schedule(self.call_handlers, Rotary.SW_PRESS)
-            
-    def add_handler(self, handler):
-        self.handlers.append(handler)
-    
-    def call_handlers(self, type):
-        for handler in self.handlers:
-            handler(type)
-            
-            
-            
-            
-            
+            micropython.schedule(self.__call_handlers, RotaryEncoder.SW_PRESS)
+
+    def add_handler(self, handler) -> None:
+        self.__handlers.append(handler)
+
+    def __call_handlers(self, event_type) -> None:
+        for handler in self.__handlers:
+            handler(event_type)
